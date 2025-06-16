@@ -1,0 +1,35 @@
+# Gradle
+.gradle/
+build/
+**/build/ # Also ignore build directories in subprojects if any in future
+
+# IntelliJ IDEA / Android Studio
+.idea/
+*.iml
+*.ipr
+*.iws
+out/
+local.properties
+captures/
+.cxx/
+*.apk
+*.ap_
+*.aab
+*.aar
+
+# Kotlin
+*.jar
+*.war
+*.ear
+*.kexe
+
+# Log files
+*.log
+hs_err_pid*
+
+# Operating System files
+.DS_Store
+Thumbs.db
+
+# Environment files
+.env

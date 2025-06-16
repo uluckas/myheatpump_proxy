@@ -1,8 +1,0 @@
-<component name="ArtifactManager">
-  <artifact type="jar" name="KotlinMultiplatformProject-wasm-js">
-    <output-path>$PROJECT_DIR$/build/libs</output-path>
-    <root id="archive" name="KotlinMultiplatformProject-wasm-js.jar">
-      <element id="module-output" name="KotlinMultiplatformProject.wasmJsMain" />
-    </root>
-  </artifact>
-</component>
