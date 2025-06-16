@@ -15,14 +15,14 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@v4
 
-    - name: Set up JDK 17
+    - name: Set up JDK 11
       uses: actions/setup-java@v4
       with:
-        java-version: '17' # Ktor and Kotlin are generally compatible with 11+
+        java-version: '11' # Ktor and Kotlin are generally compatible with 11+
         distribution: 'temurin' # Popular distribution
 
     - name: Validate Gradle wrapper
-      uses: gradle/wrapper-validation-action@v2
+      uses: gradle/wrapper-validation-action@v1
 
     - name: Make gradlew executable
       run: chmod +x ./gradlew
