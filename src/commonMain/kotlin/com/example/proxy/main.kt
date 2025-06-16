@@ -50,7 +50,7 @@ fun main() {
                 while (isActive) {
                     val inNSocket = serverSocket8899.accept()
                     val currentInNCount = ++var_inN_connection_count // Using from Constants.kt
-                    println("Accepted inN connection (#$currentInNCount) from ${inNSocket.remoteAddress}")
+                    println("Accepted in$currentInNCount connection from ${inNSocket.remoteAddress}")
                     launch {
                         // Call refactored function from ProxyLogic8899.kt
                         handleInNConnection(inNSocket, currentInNCount)
