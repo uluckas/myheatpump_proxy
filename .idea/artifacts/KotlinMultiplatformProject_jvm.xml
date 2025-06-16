@@ -1,0 +1,8 @@
+<component name="ArtifactManager">
+  <artifact type="jar" name="KotlinMultiplatformProject-jvm">
+    <output-path>$PROJECT_DIR$/build/libs</output-path>
+    <root id="archive" name="KotlinMultiplatformProject-jvm.jar">
+      <element id="module-output" name="KotlinMultiplatformProject.jvmMain" />
+    </root>
+  </artifact>
+</component>
