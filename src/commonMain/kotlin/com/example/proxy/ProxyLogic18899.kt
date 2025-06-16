@@ -4,6 +4,8 @@ import io.ktor.network.selector.*
 import io.ktor.network.sockets.*
 import io.ktor.utils.io.*
 import kotlinx.coroutines.*
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.channels.ClosedReceiveChannelException
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.collectLatest
@@ -59,8 +61,9 @@ private suspend fun CoroutineScope.collectAndForwardInNToOut0(
                     writeChannel.flush()
                 } catch (e: Exception) {
                     println("Error writing to OUT0 from IN_N for in0 (#$connectionId): ${e.message}")
-                    if (e is CancellationException) throw e
+                    ensureActive()
                     // Optionally, could try to signal error to close out0Socket or handle it
+                    // Or simply process both sockets in the same scope. This would require a review of the whole coroutines scoping here as sockets inN should probably also be closed 
                 }
             }
         }
@@ -96,11 +99,9 @@ private suspend fun CoroutineScope.manageRemoteConnectionLoop(
 
             joinAll(in0ToOut0Job, out0ToIn0Job) // Wait for either forwarding job to complete
 
-        } catch (e: CancellationException) {
-            println("manageRemoteConnectionLoop for in0 (#$connectionId) cancelled.")
-            throw e
         } catch (e: Exception) {
             println("Error in OUT0 connection cycle for in0 (#$connectionId) ${in0Socket.remoteAddress} to $REMOTE_HOST:$REMOTE_PORT: ${e.message}")
+            ensureActive()
         } finally {
             currentOut0Socket?.close() // Close the specific socket for this attempt
             out0SocketState.value = null // Clear the state flow as this socket is now closed
@@ -109,7 +110,7 @@ private suspend fun CoroutineScope.manageRemoteConnectionLoop(
                 break
             }
             println("Disconnected from $REMOTE_HOST:$REMOTE_PORT (for in0 #$connectionId ${in0Socket.remoteAddress}). Reconnecting in ${RECONNECT_DELAY_MS / 1000}s...")
-            platformSpecificDelay(RECONNECT_DELAY_MS)
+            delay(RECONNECT_DELAY_MS)
         }
     }
 }
@@ -118,8 +119,8 @@ private suspend fun CoroutineScope.forwardIn0ToOut0(
     in0ReadChannel: ByteReadChannel,
     out0WriteChannel: ByteWriteChannel,
     connectionId: Int,
-    in0RemoteAddress: NetworkAddress,
-    out0Socket: Socket // Pass the specific socket for this job
+    in0RemoteAddress: SocketAddress,
+    out0Socket: Socket, // Pass the specific socket for this job
 ) {
     try {
         val buffer = ByteArray(BUFFER_SIZE)
@@ -135,7 +136,7 @@ private suspend fun CoroutineScope.forwardIn0ToOut0(
                 break
             }
         }
-    } catch (e: ClosedReceiveChannelException) {
+    } catch (_: ClosedReceiveChannelException) {
         println("IN0 (#$connectionId) $in0RemoteAddress connection closed by client.")
     } catch (e: Exception) {
         println("Error IN0->OUT0 for in0 (#$connectionId) $in0RemoteAddress: ${e.message}")
@@ -150,8 +151,8 @@ private suspend fun CoroutineScope.forwardOut0ToIn0AndFanOut(
     out0ReadChannel: ByteReadChannel,
     in0WriteChannel: ByteWriteChannel,
     connectionId: Int,
-    in0RemoteAddress: NetworkAddress,
-    out0Socket: Socket // Pass the specific socket for this job
+    in0RemoteAddress: SocketAddress,
+    out0Socket: Socket, // Pass the specific socket for this job
 ) {
     try {
         val buffer = ByteArray(BUFFER_SIZE)
@@ -160,7 +161,7 @@ private suspend fun CoroutineScope.forwardOut0ToIn0AndFanOut(
             if (bytesRead > 0) {
                 val actualData = if (bytesRead == buffer.size) buffer else buffer.copyOfRange(0, bytesRead)
                 // Send to in0
-                println("[OUT0 ${out0Socket.remoteAddress} -> IN0 (#$connectionId) $in0RemoteAddress] Forwarding ${actualData.size} bytes")
+                println("[OUT0 ${out0Socket.remoteAddress.toString()} -> IN0 (#$connectionId) $in0RemoteAddress] Forwarding ${actualData.size} bytes")
                 in0WriteChannel.writeFully(actualData)
                 in0WriteChannel.flush()
                 // Broadcast to inN clients
@@ -171,7 +172,7 @@ private suspend fun CoroutineScope.forwardOut0ToIn0AndFanOut(
                 break
             }
         }
-    } catch (e: ClosedReceiveChannelException) {
+    } catch (_: ClosedReceiveChannelException) {
         println("OUT0 connection (for in0 #$connectionId) $in0RemoteAddress closed by remote: $REMOTE_HOST:$REMOTE_PORT")
     } catch (e: Exception) {
         println("Error OUT0->IN0/IN_N for in0 (#$connectionId) $in0RemoteAddress: ${e.message}")

@@ -1,16 +1,16 @@
 import org.jetbrains.kotlin.gradle.ExperimentalKotlinGradlePluginApi
 import org.jetbrains.kotlin.gradle.ExperimentalWasmDsl
+import org.gradle.jvm.toolchain.JvmVendorSpec
 
 plugins {
-    kotlin("multiplatform") version "2.1.20"
-}
-
-repositories {
-    mavenCentral()
+    alias(libs.plugins.kotlin.multiplatform)
 }
 
 kotlin {
-    jvmToolchain(11)
+    jvmToolchain {
+        languageVersion.set(JavaLanguageVersion.of(11))
+        vendor.set(JvmVendorSpec.AMAZON)
+    }
 
     jvm {
         @OptIn(ExperimentalKotlinGradlePluginApi::class)
@@ -28,32 +28,31 @@ kotlin {
     wasmJs {
         nodejs {
             binaries.executable()
-            testTask {
-                useMocha {
-                    timeout = "30s"
-                }
-            }
         }
     }
 
     sourceSets {
-        val commonMain by getting {
+        commonMain {
             dependencies {
-                implementation("io.ktor:ktor-client-core:2.3.7")
-                implementation("io.ktor:ktor-server-cio:2.3.7")
-                implementation("io.ktor:ktor-network:2.3.7")
-                implementation("io.ktor:ktor-network-tls:2.3.7")
+                implementation(libs.ktor.network)
             }
         }
-        val commonTest by getting {
+        commonTest {
             dependencies {
-                implementation(kotlin("test"))
+                implementation(libs.kotlin.test)
             }
         }
-        val jvmMain by getting
-        val jvmTest by getting
+        jvmMain {}
 
-        val wasmJsMain by getting
-        val wasmJsTest by getting
+        jvmTest {}
+
+        wasmJsMain {}
+        wasmJsTest {}
     }
+}
+
+// Add Ktor EAP repository for WASM artifacts
+repositories {
+    mavenCentral()
+    maven("https://maven.pkg.jetbrains.space/public/p/ktor/eap")
 }

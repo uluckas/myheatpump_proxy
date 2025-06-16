@@ -19,7 +19,7 @@ jobs:
       uses: actions/setup-java@v4
       with:
         java-version: '11' # Ktor and Kotlin are generally compatible with 11+
-        distribution: 'temurin' # Popular distribution
+        distribution: 'amazon' # Popular distribution
 
     - name: Validate Gradle wrapper
       uses: gradle/wrapper-validation-action@v1

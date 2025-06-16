@@ -3,6 +3,7 @@ package com.example.proxy
 import io.ktor.network.sockets.*
 import io.ktor.utils.io.*
 import kotlinx.coroutines.*
+import kotlinx.coroutines.channels.ClosedReceiveChannelException
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.collectLatest
 
@@ -36,7 +37,7 @@ internal suspend fun handleInNConnection(
 private suspend fun CoroutineScope.forwardSharedToInN(
     inNWriteChannel: ByteWriteChannel,
     connectionId: Int,
-    inNRemoteAddress: NetworkAddress,
+    inNRemoteAddress: SocketAddress,
     parentScope: CoroutineScope // To cancel parent if a critical write error occurs
 ) {
     dataFromOut0ToInN.asSharedFlow().collectLatest { byteArray ->
@@ -48,7 +49,7 @@ private suspend fun CoroutineScope.forwardSharedToInN(
             } catch (e: Exception) {
                 println("Error writing to IN_N (#$connectionId) $inNRemoteAddress: ${e.message}")
                 parentScope.cancel("Write to inN (#$connectionId) failed", e) // Cancel the whole handleInNConnection
-                if (e is CancellationException) throw e
+                ensureActive()
             }
         } else {
             // Socket is closed or coroutine is no longer active, cancel collection.
@@ -60,7 +61,7 @@ private suspend fun CoroutineScope.forwardSharedToInN(
 private suspend fun CoroutineScope.forwardInNToShared(
     inNReadChannel: ByteReadChannel,
     connectionId: Int,
-    inNRemoteAddress: NetworkAddress,
+    inNRemoteAddress: SocketAddress,
     parentScope: CoroutineScope // To cancel parent if a critical read error occurs
 ) {
     try {
@@ -80,7 +81,7 @@ private suspend fun CoroutineScope.forwardInNToShared(
         println("IN_N (#$connectionId) $inNRemoteAddress connection closed by client.")
     } catch (e: Exception) {
         println("Error reading from IN_N (#$connectionId) $inNRemoteAddress: ${e.message}")
-        if (e is CancellationException) throw e // Propagate if it's a cancellation
+        if (e is kotlinx.coroutines.CancellationException) throw e // Propagate if it's a cancellation
          parentScope.cancel("Error reading from IN_N (#$connectionId)", e) // Cancel parent on other errors
     } finally {
         println("IN_N (#$connectionId) $inNRemoteAddress forwarder (to shared) stopping.")
