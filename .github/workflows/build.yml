@@ -1,0 +1,39 @@
+name: Build Kotlin Multiplatform Proxy
+
+on:
+  push:
+    branches: [ "main", "master" ] # Adjust if your main branch has a different name
+  pull_request:
+    branches: [ "main", "master" ] # Adjust if your main branch has a different name
+
+jobs:
+  build:
+    name: Build on Ubuntu
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up JDK 17
+      uses: actions/setup-java@v4
+      with:
+        java-version: '17' # Ktor and Kotlin are generally compatible with 11+
+        distribution: 'corretto' # Popular distribution
+
+    - name: Make gradlew executable
+      run: chmod +x ./gradlew
+      # This step assumes gradlew exists at the root of the repository.
+      # If it's missing, the build will fail here or on the next step.
+
+    - name: Build with Gradle
+      run: ./gradlew build -x test
+      # This command will build all targets configured in build.gradle.kts
+      # (jvm, nodejs, linuxArm32Hfp, androidNativeArm32)
+      # The -x test flag skips running unit tests for now.
+
+# Future considerations (not for this subtask):
+# - Caching Gradle dependencies to speed up builds.
+# - Building for different OS if native targets for macOS/Windows were still needed.
+# - Uploading build artifacts (e.g., JVM JAR, native executables).
+# - Running tests if/when they are added.
