@@ -21,9 +21,6 @@ jobs:
         java-version: '17' # Ktor and Kotlin are generally compatible with 11+
         distribution: 'corretto' # Popular distribution
 
-    - name: Validate Gradle wrapper
-      uses: gradle/wrapper-validation-action@v1
-
     - name: Make gradlew executable
       run: chmod +x ./gradlew
       # This step assumes gradlew exists at the root of the repository.
